@@ -4,7 +4,7 @@ package data
 import (
 	"strings"
 
-	"github.com/Duane-Arzu/test3.git/internal/validator"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/validator"
 )
 
 // Filters holds pagination and sorting options.

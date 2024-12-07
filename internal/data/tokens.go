@@ -8,7 +8,7 @@ import (
 	"encoding/base32"
 	"time"
 
-	"github.com/Duane-Arzu/test3.git/internal/validator"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/validator"
 )
 
 // Token scopes define the purpose of the token.

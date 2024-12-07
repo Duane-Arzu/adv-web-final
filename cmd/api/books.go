@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	// import the data package which contains the definition for Comment
-	"github.com/Duane-Arzu/test3.git/internal/data"
-	"github.com/Duane-Arzu/test3.git/internal/validator"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/data"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/validator"
 )
 
 var incomingData struct {

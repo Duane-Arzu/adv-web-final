@@ -10,8 +10,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/Duane-Arzu/test3.git/internal/data"
-	"github.com/Duane-Arzu/test3.git/internal/validator"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/data"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/validator"
 
 	"golang.org/x/time/rate"
 )

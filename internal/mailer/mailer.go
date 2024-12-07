@@ -9,19 +9,18 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
-// this allow us to not need a  separate server for serving static files
+// Embed static template files directly into the application
 //
 //go:embed "templates"
-var templateFS embed.FS // embed the files from templates into our program
+var templateFS embed.FS // Holds embedded template files
 
-// dialer is a connection to the SMTP server
-// sender is who is sending the email to the new user
+// Mailer manages SMTP settings and sender details
 type Mailer struct {
-	dialer *mail.Dialer
-	sender string
+	dialer *mail.Dialer // SMTP connection
+	sender string       // Email sender address
 }
 
-// Configure a SMTP connection instance using our credentials from Mailtrap
+// Initialize a new Mailer instance with SMTP configuration
 func New(host string, port int, username, password, sender string) Mailer {
 	dialer := mail.NewDialer(host, port, username, password)
 	dialer.Timeout = 5 * time.Second
@@ -32,51 +31,52 @@ func New(host string, port int, username, password, sender string) Mailer {
 	}
 }
 
-// Send the email to the user. The data parameter is for the dynamic data
-// to inject into the template
+// Send an email using the specified template and dynamic data
 func (m Mailer) Send(recipient, templateFile string, data any) error {
-	tmpl, err := template.New("email").ParseFS(templateFS,
-		"templates/"+templateFile)
-
+	// Parse the template file from embedded templates
+	tmpl, err := template.New("email").ParseFS(templateFS, "templates/"+templateFile)
 	if err != nil {
 		return err
 	}
+
+	// Generate the email subject from the template
 	subject := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(subject, "subject", data)
 	if err != nil {
 		return err
 	}
 
-	// fill in the plainBody part
+	// Generate the plain-text body
 	plainBody := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(plainBody, "plainBody", data)
 	if err != nil {
 		return err
 	}
+
+	// Generate the HTML body
 	htmlBody := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(htmlBody, "htmlBody", data)
 	if err != nil {
 		return err
 	}
 
-	// Craft the message from the parts above
+	// Compose the email message
 	msg := mail.NewMessage()
 	msg.SetHeader("To", recipient)
 	msg.SetHeader("From", m.sender)
 	msg.SetHeader("Subject", subject.String())
 	msg.SetBody("text/plain", plainBody.String())
 	msg.AddAlternative("text/html", htmlBody.String())
+
+	// Attempt to send the email with retries
 	for i := 1; i <= 3; i++ {
 		err = m.dialer.DialAndSend(msg)
-		// If everything worked, return nil.
-		if err == nil {
+		if err == nil { // Success
 			return nil
 		}
-
-		// If it didn't work, sleep for a short time and retry.
-		// We can increase this sleep time if the sending is done in the background
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond) // Short delay before retrying
 	}
 
-	return err // give up
+	// Return the error if all attempts fail
+	return err
 }

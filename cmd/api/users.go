@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Duane-Arzu/test3.git/internal/data"
-	"github.com/Duane-Arzu/test3.git/internal/validator"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/data"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/validator"
 )
 
 // Handler to register a new user

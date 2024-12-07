@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Duane-Arzu/test3.git/internal/data"
-	"github.com/Duane-Arzu/test3.git/internal/mailer"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/data"
+	"github.com/Duane-Arzu/adv-web-final.git/internal/mailer"
 	_ "github.com/lib/pq"
 )
 
@@ -53,7 +53,7 @@ func main() {
 
 	flag.IntVar(&setting.port, "port", 4000, "Server port")
 	flag.StringVar(&setting.environment, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&setting.db.dsn, "db-dsn", "postgres://test3:test3@localhost/test3?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&setting.db.dsn, "db-dsn", "postgres://final:final@localhost/final?sslmode=disable", "PostgreSQL DSN")
 
 	flag.Float64Var(&setting.limiter.rps, "limiter-rps", 2, "Rate Limiter maximum requests per second")
 
