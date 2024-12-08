@@ -40,13 +40,18 @@ func (a *applicationDependencies) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/api/v1/reviews/:rid", a.requireActivatedUser(a.updateReviewHandler))
 	router.HandlerFunc(http.MethodDelete, "/api/v1/reviews/:rid", a.requireActivatedUser(a.deleteReviewHandler))
 
-	// Users Section
-	// =============
+	// Section for Users
 	router.HandlerFunc(http.MethodPut, "/api/v1/users/activated", a.activateUserHandler)
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:uid", a.requireActivatedUser(a.listUserProfileHandler))
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:uid/reviews", a.requireActivatedUser(a.getUserReviewsHandler))
 	router.HandlerFunc(http.MethodGet, "/api/v1/users/:uid/lists", a.requireActivatedUser(a.getUserListsHandler))
 	router.HandlerFunc(http.MethodPost, "/api/v1/tokens/authentication", a.createAuthenticationTokenHandler)
+	//router.HandlerFunc(http.MethodPost, "/api/v1/users", a.registerUserHandler)
+
+	// Section for password reset
+	router.HandlerFunc(http.MethodPost, "/api/v1/tokens/password-reset", a.requireActivatedUser(a.passwordResetTokenHandler))
+	router.HandlerFunc(http.MethodPatch, "/api/v1/users/password", a.requireActivatedUser(a.passwordResetHandler))
+
 	router.HandlerFunc(http.MethodPost, "/api/v1/users", a.registerUserHandler)
 
 	return a.recoverPanic(a.rateLimit(a.authenticate(router)))

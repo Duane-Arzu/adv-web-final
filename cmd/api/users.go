@@ -3,6 +3,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -229,6 +230,88 @@ func (a *applicationDependencies) getUserListsHandler(w http.ResponseWriter, r *
 		"User Lists": lists,
 	}
 
+	err = a.writeJSON(w, http.StatusOK, data, nil)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (a *applicationDependencies) passwordResetHandler(w http.ResponseWriter, r *http.Request) {
+	// Read the token and new password from the request body
+	var incomingData struct {
+		TokenPlaintext string `json:"token"`
+		NewPassword    string `json:"password"`
+	}
+	err := a.readJSON(w, r, &incomingData)
+	if err != nil {
+		a.badRequestResponse(w, r, err)
+		return
+	}
+
+	// Validate that the new password is not empty
+	if incomingData.NewPassword == "" {
+		a.badRequestResponse(w, r, fmt.Errorf("new password must be provided"))
+		return
+	}
+
+	// Validate the token
+	v := validator.New()
+	data.ValidateTokenPlaintext(v, incomingData.TokenPlaintext)
+	if !v.IsEmpty() {
+		a.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	// Check if the token is valid and belongs to the user
+	user, err := a.userModel.GetForToken(data.ScopePasswordReset, incomingData.TokenPlaintext)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			v.AddError("token", "invalid or expired activation token")
+			a.failedValidationResponse(w, r, v.Errors)
+		default:
+			a.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Fetch the user associated with the token
+	user, err = a.userModel.GetByID(user.ID)
+	if err != nil {
+		a.notFoundResponse(w, r)
+		return
+	}
+
+	err = user.Password.Set(incomingData.NewPassword)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	data.ValidateUser(v, user)
+	if !v.IsEmpty() {
+		a.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = a.userModel.Update(user)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Delete all existing password reset tokens for the user
+	err = a.tokenModel.DeleteAllForUser(data.ScopePasswordReset, user.ID)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Respond with a success message
+	data := envelope{
+		"message": "your password was successfully reset",
+	}
 	err = a.writeJSON(w, http.StatusOK, data, nil)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
