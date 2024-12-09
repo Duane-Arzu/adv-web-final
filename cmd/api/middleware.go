@@ -18,20 +18,21 @@ import (
 
 func (a *applicationDependencies) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Recover from any panics and return a server error
+		// defer will be called when the stack unwinds
 		defer func() {
-			if err := recover(); err != nil {
+			// recover() checks for panics
+			err := recover()
+			if err != nil {
 				w.Header().Set("Connection", "close")
 				a.serverErrorResponse(w, r, fmt.Errorf("%s", err))
 			}
 		}()
-		// Pass the request to the next handler
 		next.ServeHTTP(w, r)
 	})
 }
 
 func (a *applicationDependencies) rateLimit(next http.Handler) http.Handler {
-	// Client struct stores rate limiter and last activity timestamp
+
 	type client struct {
 		limiter  *rate.Limiter
 		lastSeen time.Time
@@ -40,7 +41,6 @@ func (a *applicationDependencies) rateLimit(next http.Handler) http.Handler {
 	var mu sync.Mutex
 	var clients = make(map[string]*client)
 
-	// Periodic cleanup for inactive clients
 	go func() {
 		for {
 			time.Sleep(time.Minute)
@@ -53,10 +53,9 @@ func (a *applicationDependencies) rateLimit(next http.Handler) http.Handler {
 			mu.Unlock()
 		}
 	}()
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if a.config.limiter.enabled {
-			// Extract client IP address
+
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)
 			if err != nil {
 				a.serverErrorResponse(w, r, err)
@@ -65,38 +64,40 @@ func (a *applicationDependencies) rateLimit(next http.Handler) http.Handler {
 
 			mu.Lock()
 
-			// Initialize limiter for new clients
-			if _, found := clients[ip]; !found {
-				clients[ip] = &client{
-					limiter: rate.NewLimiter(rate.Limit(a.config.limiter.rps), a.config.limiter.burst),
+			_, found := clients[ip]
+			if !found {
+				clients[ip] = &client{limiter: rate.NewLimiter(
+					rate.Limit(a.config.limiter.rps),
+					a.config.limiter.burst),
 				}
 			}
+
 			clients[ip].lastSeen = time.Now()
 
-			// Deny request if rate limit exceeded
 			if !clients[ip].limiter.Allow() {
 				mu.Unlock()
 				a.rateLimitExceededResponse(w, r)
 				return
 			}
+
 			mu.Unlock()
 		}
-		// Pass request to the next handler
 		next.ServeHTTP(w, r)
+
 	})
+
 }
 
 func (a *applicationDependencies) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check for the Authorization header
+
 		authorizationHeader := r.Header.Get("Authorization")
+
 		if authorizationHeader == "" {
-			r = a.contextSetUser(r, data.AnonymousUser) // Assign anonymous user
+			r = a.contextSetUser(r, data.AnonymousUser)
 			next.ServeHTTP(w, r)
 			return
 		}
-
-		// Validate the Bearer token format
 		headerParts := strings.Split(authorizationHeader, " ")
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 			a.invalidAuthenticationTokenResponse(w, r)
@@ -104,6 +105,7 @@ func (a *applicationDependencies) authenticate(next http.Handler) http.Handler {
 		}
 
 		token := headerParts[1]
+		// Validate
 		v := validator.New()
 		data.ValidateTokenPlaintext(v, token)
 		if !v.IsEmpty() {
@@ -111,7 +113,7 @@ func (a *applicationDependencies) authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		// Fetch user associated with the token
+		// Get the user info associated with this authentication token
 		user, err := a.userModel.GetForToken(data.ScopeAuthentication, token)
 		if err != nil {
 			switch {
@@ -122,20 +124,21 @@ func (a *applicationDependencies) authenticate(next http.Handler) http.Handler {
 			}
 			return
 		}
-		// Set the user in the request context
 		r = a.contextSetUser(r, user)
 
-		// Pass the request to the next handler
+		// Call the next handler in the chain.
 		next.ServeHTTP(w, r)
 	})
 }
 
 func (a *applicationDependencies) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Ensure the user is authenticated
+
 		user := a.contextGetUser(r)
+
 		if user.IsAnonymous() {
-			a.authenticationRequiredResponse(w, r) // Return 401 Unauthorized
+			// Send 401 Unauthorized for anonymous users
+			a.authenticationRequiredResponse(w, r)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -143,17 +146,19 @@ func (a *applicationDependencies) requireAuthenticatedUser(next http.HandlerFunc
 }
 
 func (a *applicationDependencies) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
-	// Middleware to ensure the user is activated
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		user := a.contextGetUser(r)
+
 		if !user.Activated {
-			a.inactiveAccountResponse(w, r) // Return 403 Forbidden
+			// Send 403 Forbidden for users whose accounts are not activated
+			a.inactiveAccountResponse(w, r)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 
-	// Chain with requireAuthenticatedUser to ensure both authentication and activation
+	// Chain the activated user check after ensuring the user is authenticated
 	return a.requireAuthenticatedUser(fn)
 }
 
@@ -171,19 +176,19 @@ func (a *applicationDependencies) enableCORS(next http.Handler) http.Handler {
 				if origin == a.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					if r.Method == http.MethodOptions &&
-					r.Header.Get("Access-Control-Request-Method") != "" {
-					w.Header().Set("Access-Control-Allow-Methods",
-						"OPTIONS, PUT, PATCH, DELETE")
-					w.Header().Set("Access-Control-Allow-Headers",
-						"Authorization, Content-Type")
-					w.WriteHeader(http.StatusOK)
-					return
-				}
+						r.Header.Get("Access-Control-Request-Method") != "" {
+						w.Header().Set("Access-Control-Allow-Methods",
+							"OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers",
+							"Authorization, Content-Type")
+						w.WriteHeader(http.StatusOK)
+						return
+					}
 
-				break
+					break
+				}
 			}
 		}
-	}
-	next.ServeHTTP(w,r)
-})
+		next.ServeHTTP(w, r)
+	})
 }

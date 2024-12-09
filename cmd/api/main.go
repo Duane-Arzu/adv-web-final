@@ -55,19 +55,20 @@ type applicationDependencies struct {
 func main() {
 	var setting serverConfig
 
-	// Define command-line flags for server configuration
 	flag.IntVar(&setting.port, "port", 4000, "Server port")
-	flag.StringVar(&setting.environment, "env", "development", "App environment (development|staging|production)")
+	flag.StringVar(&setting.environment, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&setting.db.dsn, "db-dsn", "postgres://final:final@localhost/final?sslmode=disable", "PostgreSQL DSN")
 
-	// Configure rate limiter settings
-	flag.Float64Var(&setting.limiter.rps, "limiter-rps", 2, "Rate limiter: requests per second")
-	flag.IntVar(&setting.limiter.burst, "limiter-burst", 5, "Rate limiter: burst capacity")
+	flag.Float64Var(&setting.limiter.rps, "limiter-rps", 2, "Rate Limiter maximum requests per second")
+
+	flag.IntVar(&setting.limiter.burst, "limiter-burst", 5, "Rate Limiter maximum burst")
+
 	flag.BoolVar(&setting.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
-	// Define SMTP email server settings
-	flag.StringVar(&setting.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host address")
-	flag.IntVar(&setting.smtp.port, "smtp-port", 2525, "SMTP port (e.g., 25, 465, 587, 2525)")
+	flag.StringVar(&setting.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	// We have port 25, 465, 587, 2525. If 25 doesn't work choose another
+	flag.IntVar(&setting.smtp.port, "smtp-port", 2525, "SMTP port")
+	// Use your Username value provided by Mailtrap
 	flag.StringVar(&setting.smtp.username, "smtp-username", "147f39f67b641b", "SMTP username")
 	flag.StringVar(&setting.smtp.password, "smtp-password", "00deefca7111e6", "SMTP password")
 	flag.StringVar(&setting.smtp.sender, "smtp-sender", "Book Club Management Community <no-reply@commentscommunity.duanearzu.net>", "Default email sender")

@@ -1,45 +1,17 @@
-function requestPasswordReset(email) {
-    fetch('http://localhost:4000/v1/tokens/password-reset', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: "duane@example.com" }), // Use dynamic email parameter
+fetch("http://localhost:4000/api/v1/tokens/authentication", {
+    method: "POST",
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email: 'duane@example.com',
+      password: 'yousayless'
     })
-    .then(response => response.json())
-    .then(data => {
-        console.log("Password reset email sent:", data.message);
-    })
-    .catch(error => {
-        console.error("Error:", error);
+  })
+  .then(function(response) {
+    response.text().then(function(text) {
+      console.log("Response:", text);
     });
-}
-  
-  // 2. Update password (PUT request)
-  function updatePassword(token, newPassword) {
-    fetch('http://localhost:4000/v1/users/password', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: token, // Reset token
-        password: newPassword, // New password
-      }),
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log("Password successfully reset:", data.message);
-    })
-    .catch(error => {
-      console.error("Error:", error);
-    });
-  }
-  
-  // Example usage
-  // Step 1: Request password reset (using your email)
-  requestPasswordReset('duke@example.com');
-  
-  // Step 2: After getting the reset token from email, call this function
-  // Example: updatePassword('your-reset-token-here', 'new-password123');
-  
+  }, function(err) {
+    console.error("Error:", err);
+  });
