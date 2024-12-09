@@ -54,5 +54,6 @@ func (a *applicationDependencies) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/api/v1/users", a.registerUserHandler)
 
-	return a.recoverPanic(a.rateLimit(a.authenticate(router)))
+	//return a.recoverPanic(a.rateLimit(a.authenticate(router)))
+	return a.recoverPanic(a.enableCORS(a.rateLimit(a.authenticate(router))))
 }
