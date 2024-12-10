@@ -164,29 +164,25 @@ func (a *applicationDependencies) requireActivatedUser(next http.HandlerFunc) ht
 
 func (a *applicationDependencies) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Add("Vary", "Origin")
 		w.Header().Add("Vary", "Access-Control-Request-Method")
-
-		// Let's check the request origin to see if it's in the trusted list
 		origin := r.Header.Get("Origin")
-		// Once we have a origin from the request header we need need to check
+
 		if origin != "" {
 			for i := range a.config.cors.trustedOrigins {
 				if origin == a.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
-					if r.Method == http.MethodOptions &&
-						r.Header.Get("Access-Control-Request-Method") != "" {
-						w.Header().Set("Access-Control-Allow-Methods",
-							"OPTIONS, PUT, PATCH, DELETE")
-						w.Header().Set("Access-Control-Allow-Headers",
-							"Authorization, Content-Type")
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
 						w.WriteHeader(http.StatusOK)
+
 						return
 					}
-
 					break
 				}
+
 			}
 		}
 		next.ServeHTTP(w, r)

@@ -12,12 +12,12 @@ import (
 
 // Review struct
 type Review struct {
-	ReviewID   int64     `json:"id"`
-	BookID     int64     `json:"book_id"`
+	ReviewID   int64     `json:"id"`      // bigserial primary key
+	BookID     int64     `json:"book_id"` // foreign key referencing products
 	UserID     int64     `json:"user_id"`
-	Rating     int64     `json:"rating"`
-	ReviewText string    `json:"review"`
-	ReviewDate time.Time `json:"-"`
+	Rating     int64     `json:"rating"` // integer with a constraint (1-5)
+	ReviewText string    `json:"review"` // non-null text field
+	ReviewDate time.Time `json:"-"`      // timestamp with timezone, default now()
 	Version    int       `json:"version"`
 }
 

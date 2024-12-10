@@ -11,45 +11,39 @@ import (
 	"github.com/Duane-Arzu/adv-web-final.git/internal/validator"
 )
 
-// Handler to register a new user
-func (a *applicationDependencies) registerUserHandler(w http.ResponseWriter,
-	r *http.Request) {
-	// Read incoming JSON data and store it in a struct
+func (a *applicationDependencies) registerUserHandler(w http.ResponseWriter, r *http.Request) {
+	// Get the passed in data from the request body and store in a temporary struct
 	var incomingData struct {
-		Username string `json:"username"` // New user's username
-		Email    string `json:"email"`    // New user's email
-		Password string `json:"password"` // New user's password
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	err := a.readJSON(w, r, &incomingData)
 	if err != nil {
-		// Respond with a "bad request" error if the JSON is invalid
 		a.badRequestResponse(w, r, err)
 		return
 	}
-	// Create a new user object with the received data
+	// we will add the password later after we have hashed it
 	user := &data.User{
 		Username:  incomingData.Username,
 		Email:     incomingData.Email,
 		Activated: false,
 	}
-	// Hash the provided password
+
 	err = user.Password.Set(incomingData.Password)
 	if err != nil {
-		// Respond with a "server error" if password hashing fails
 		a.serverErrorResponse(w, r, err)
 		return
 	}
-	// Validate the user's data
+	// Perform validation for the User
 	v := validator.New()
 
 	data.ValidateUser(v, user)
-	// If validation errors exist, respond with a "failed validation" error
 	if !v.IsEmpty() {
 		a.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	// Insert the user into the database
 	err = a.userModel.Insert(user)
 	if err != nil {
 		switch {
@@ -82,7 +76,7 @@ func (a *applicationDependencies) registerUserHandler(w http.ResponseWriter,
 		}
 	})
 
-	// Respond with a "resource created" status and the new user data
+	// Status code 201 resource created
 	err = a.writeJSON(w, http.StatusCreated, data, nil)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
@@ -91,7 +85,7 @@ func (a *applicationDependencies) registerUserHandler(w http.ResponseWriter,
 }
 
 func (a *applicationDependencies) activateUserHandler(w http.ResponseWriter, r *http.Request) {
-	// Read the activation token from the request body
+	// Get the body from the request and store in temporary struct
 	var incomingData struct {
 		TokenPlaintext string `json:"token"`
 	}
@@ -107,8 +101,8 @@ func (a *applicationDependencies) activateUserHandler(w http.ResponseWriter, r *
 		a.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-
-	// Find the user associated with the token
+	// Let's check if the token provided belongs to the user
+	// We will implement the GetForToken() method later
 	user, err := a.userModel.GetForToken(data.ScopeActivation,
 		incomingData.TokenPlaintext)
 	if err != nil {
@@ -158,6 +152,7 @@ func (a *applicationDependencies) listUserProfileHandler(w http.ResponseWriter, 
 		return
 	}
 
+	//call the GetUserProfile() function to retrieve
 	user, err := a.userModel.GetByID(id)
 	if err != nil {
 		switch {
@@ -211,6 +206,8 @@ func (a *applicationDependencies) getUserReviewsHandler(w http.ResponseWriter, r
 }
 
 func (a *applicationDependencies) getUserListsHandler(w http.ResponseWriter, r *http.Request) {
+	// Get the id from the URL so that we can use it to query the comments table.
+	//'uid' for userID
 	id, err := a.readIDParam(r, "uid")
 	if err != nil {
 		a.notFoundResponse(w, r)
