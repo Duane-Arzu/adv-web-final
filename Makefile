@@ -3,7 +3,7 @@ include .envrc
 .PHONY: run/api
 run/api:
 	@echo  'Running application…'
-	@go run ./cmd/api -port=4000 -env=development -limiter-burst=5 -limiter-rps=2 -limiter-enabled=true -cors-trusted-origins="http://localhost:9000 http://localhost:9001" -db-dsn=${COMMENTS_DB_DSN} 
+	@go run ./cmd/api -port=4000 -env=development -limiter-burst=5 -limiter-rps=2 -limiter-enabled=true -cors-trusted-origins="http://localhost:9000 http://localhost:9001 http://localhost:4000" -db-dsn=${COMMENTS_DB_DSN} 
 
 .PHONY: db/psql
 db/psql:
